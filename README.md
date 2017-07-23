@@ -8,6 +8,7 @@ Recommend running inside docker, takes 5 mins to get running
 1. Get docker https://www.docker.com/community-edition
 
 2. Start a new container called 'npd_jb_ows_redis', using 'redis' image (will download from dockerhub if not available locally), disconnecting after container startup, forwarding port 6379 from the container to local machine:
+
 ```docker run -d -p 6379:6379 --name npd_jb_ows_redis redis```
 
 3. Test it's working
