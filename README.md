@@ -24,6 +24,14 @@ $3
 ddd
 ```
 
+
+AWS DynamoDB could also be used, but initially would trial / prototype with redis
+- simplicity, esp. for development & running locally
+- cost
+- rate limiting probably not considered 'mission-critical' with AWS' uptime guarantees and scalability required, initially anyway
+
+
+
 ## Testing
 
 Redis mock used to enable unit tests to run locally without setting up redis server; faster for dev and 'close enough' to prod setup
@@ -84,6 +92,7 @@ Advantages
 
 Disadvantages
 - less performant & more complex than fixed window (e.g. key = apikey + epoch-hour, increment with TTL)
+- TBD - locking & possible race conditions
 
 
 ## Testing
