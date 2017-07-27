@@ -17,7 +17,6 @@ from werkzeug.exceptions import NotFound, Unauthorized, BadRequest, TooManyReque
 
 from models import User
 
-
 app = Flask(__name__)
 if config.DEV_MODE:
     app.debug = True
@@ -113,5 +112,7 @@ def get_weather():
 
 
 if __name__=='__main__':
+    if config.DEV_MODE:
+        print('RUNNING IN DEV MODE - FAKE REDIS DB IN USE - OWM API WILL NOT ACTUALLY BE CONTACTED')
     http = WSGIServer(('', config.LISTEN_PORT), app)
     http.serve_forever()
