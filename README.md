@@ -2,16 +2,20 @@
 
 ## Setup
 
-For 'production', redis server recommended
+### Redis
+Redis currently just used for rate limiting, and only if config DEV_MODE is not set
 
-Recommend running inside docker, takes 5 mins to get running
+If config.DEV_MODE is set then fakeredis (in-memory) is used, this is intended for development and testing
+
+Recommend to run redis inside docker. For your workstation, brief steps to do so might be:
+
 1. Get docker https://www.docker.com/community-edition
 
-2. Start a new container called 'npd_jb_ows_redis', using 'redis' image (will download from dockerhub if not available locally), disconnecting after container startup, forwarding port 6379 from the container to local machine:
+2. Start a new container called e.g. 'npd_jb_ows_redis', using 'redis' image (will download from dockerhub if not available locally), disconnecting after container startup, forwarding port 6379 from the container to local machine:
 
 ```docker run -d -p 6379:6379 --name npd_jb_ows_redis redis```
 
-3. Test it's working
+3. Test your redis server is running
 ```shell
 ➜  jb-owm git:(master) ✗ docker ps
 CONTAINER ID        IMAGE               COMMAND                  CREATED              STATUS              PORTS                    NAMES
@@ -24,24 +28,32 @@ $3
 ddd
 ```
 
-
 AWS DynamoDB could also be used, but initially would trial / prototype with redis
 - simplicity, esp. for development & running locally
 - cost
 - rate limiting probably not considered 'mission-critical' with AWS' uptime guarantees and scalability required, initially anyway
 
+If redis server is non-localhost and non-default port (6379) these will need to be updated in config.py
 
+
+### REST API
+
+1. Extract code
+2. Edit config.py to set DEV_MODE (and, if not in dev mode, OWM_API_KEY)
+3. Strongly recommend using python virtualenv http://python-guide-pt-br.readthedocs.io/en/latest/dev/virtualenvs/
+4. pip install -r requirements.txt
+5. ./rest_api.py
 
 ## Testing
 
-Redis mock used to enable unit tests to run locally without setting up redis server; faster for dev and 'close enough' to prod setup
+FakeRedis used to enable unit tests to run locally without setting up redis server; faster for dev and 'close enough' to prod setup
 
 A further step would be integration tests, which would ideally run from CI on full stack, using exactly the same environments as staging / production, with such deployment automated with docker or AWS opsworks
 
 
 ## Rate limiting algorithm
 
-Ideally this would use redis because
+Using redis server vs. within the app process because
 - fast, in-memory, small footprint
 - supports api worker restart / scaleout / load balancing
 - more available for managment & monitoring
@@ -84,17 +96,10 @@ Tail (oldest) 3:05 is not within last hour - ALLOW
 
 
 Advantages
-- sliding instead of fixed time window; hour boundaries don't cause issues
-- simple end efficient data structure and algorithm
+- Sliding instead of fixed time window; hour boundaries don't cause issues
+- Simple end efficient data structure and algorithm
 
 Disadvantages
-- less performant & more complex than fixed window (e.g. key = apikey + epoch-hour, increment with TTL)
+- Less performant & more complex than fixed window (e.g. key = apikey + epoch-hour, increment with TTL)
 - TBD - locking & possible race conditions
-
-
-## Testing
-
-## API key
-Using demo key from OWM b1b15e88fa797225412429c1c50c122a1
-
 
