@@ -27,15 +27,21 @@ class TestRestAPI(unittest.TestCase):
         res = self.app.get('/weather?api_key=%s&q=' % API_KEY_VALID)
         self.assertEqual(400, res.status_code)
 
-    def test_get_weather(self):
-        res = self.app.get('/weather')
-        #logging.error(res.response)
-        #logging.error(res.status_code)
-        self.assertEqual(401, res.status_code)
+    def test_get_weather_melbourne_only(self):
+        res = self.app.get('/weather?q=Melbourne&api_key=%s' % API_KEY_VALID)
+        self.assertEqual(200, res.status_code)
 
-    def test_iget_weather(self):
-        #self.assertTrue(False)
-        self.assertTrue(True)
+        # Ensure we only get one string, of alphanumeric chars (no json etc) back
+        s = res.get_data(as_text=True)
+        self.assertRegex(s, "^[\w ]+$")
+
+    def test_get_weather_melbourne_au(self):
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+        self.assertEqual(200, res.status_code)
+
+        # Ensure we only get one string, of alphanumeric chars (no json etc) back
+        s = res.get_data(as_text=True)
+        self.assertRegex(s, "^[\w ]+$")
 
 if __name__ == '__main__':
     unittest.main()
