@@ -43,5 +43,21 @@ class TestRestAPI(unittest.TestCase):
         s = res.get_data(as_text=True)
         self.assertRegex(s, "^[\w ]+$")
 
+    def test_ratelimit(self):
+        # Best to not assume how many requests / tests have run prior
+        # Just make enough to be sure we're over the allowed number per hour
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+        self.assertEqual(429, res.status_code)
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+        self.assertEqual(429, res.status_code)
+        res = self.app.get('/weather?q=Melbourne,au&api_key=%s' % API_KEY_VALID)
+        self.assertEqual(429, res.status_code)
+
 if __name__ == '__main__':
     unittest.main()
