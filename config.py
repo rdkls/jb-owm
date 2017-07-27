@@ -5,6 +5,8 @@ REDIS_HOST          = '127.0.0.1'
 REDIS_PORT          = 6379
 REDIS_DB_RATELIMITS = 0
 
+LIMIT_REQ_PER_HOUR   = 5
+
 # In reality these would probably be stored in DB
 # mainly for flexibility, facilitate updating them without updating/restarting API code
 

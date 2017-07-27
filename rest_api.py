@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 import config
 import util
-import re
 
-import sys
 import json
+import re
 import redis
 import requests
+import sys
+import time
 
 from flask_cors import CORS
 from gevent.pywsgi import WSGIServer
@@ -35,7 +36,26 @@ def check_auth():
     return user
 
 def check_ratelimit(api_key):
-    return true
+    """ Implements sliding window rate limit on api requests using redis
+    For details see README
+    """
+    current_request_epoch = time.time()
+    # Push current request time on to head of this api key's list
+    redis_db_ratelimit.lpush(api_key, current_request_epoch)
+
+    # If this means we're under LIMIT_REQ_PER_HOUR reqs total = ALLOW
+    if redis_db_ratelimit.llen(api_key) <= config.LIMIT_REQ_PER_HOUR:
+        return True
+
+    # Otherwise - need to check if the oldest req is older than an hour = ALLOW
+    current_request_epoch = time.time()
+    oldest_request_epoch = float(redis_db_ratelimit.rpop(api_key))
+    hours_since_oldest_req = (current_request_epoch - oldest_request_epoch) / 3600
+    if hours_since_oldest_req > 1:
+        return True
+
+    # Default deny
+    return False
 
 @app.route('/weather', methods=['GET'])
 def get_weather():
@@ -43,7 +63,8 @@ def get_weather():
     user = check_auth()
 
     # check throttling
-    # raise TooManyRequests
+    if not check_ratelimit(user.api_key):
+        raise TooManyRequests('Maximum of %s request per hour' % config.LIMIT_REQ_PER_HOUR)
 
     # Extract and sanitize city & country
     q = request.args.get('q')

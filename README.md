@@ -48,14 +48,13 @@ Ideally this would use redis because
 
 Using redis' list data structure
 with key = api key
-and value = list of request epochs
+and value = list of request epochs, ordered by time, with the newest request times at head (redis "left") of list
 
 Each request:
 1. Push request epoch on to head of list
 2. If length of list < 5 then ALLOW
-3. Trim list to 5
-4. If tail (oldest) request is within last hour, this means that there have been (at least) 5 requests in the last hour, DENY
-5. Otherwise there haven't been 5 requests this hour, ALLOW
+4. If tail (oldest) request is older than an hour = ALLOW (obtain using destructive pop)
+5. Otherwise (default) there have been >= 5 requests logged, and the oldest was within the hour = DENY
 
 e.g.
 
@@ -71,20 +70,18 @@ Request @ 3:05
 ['2:50', '2:55', '3:05']
 Rule #1 applies - ALLOW
 
-
 ... etc until 5 values ...
 
-
 Request @ 3:07
-['2:50', '2:55', '3:05', '3:06', '3:06']
-
 Push, set becomes:
-['2:50', '2:55', '3:05', '3:06', '3:06', '3:07']
-
-Trim, set becomes:
 ['2:55', '3:05', '3:06', '3:06', '3:07']
+Tail (oldest) 2:55 is within last hour - DENY
 
-Tail (earliest) 2:55 is within last hour - DENY
+Much later request @ 5:55
+Push, set becomes:
+['3:05', '3:06', '3:06', '3:07', '5:55']
+Tail (oldest) 3:05 is not within last hour - ALLOW
+
 
 Advantages
 - sliding instead of fixed time window; hour boundaries don't cause issues
