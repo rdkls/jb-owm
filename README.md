@@ -46,9 +46,15 @@ If redis server is non-localhost and non-default port (6379) these will need to 
 
 ## Testing
 
+Ensure config.py has DEV_MODE = True
+
+./test_rest_api.py
+
+(optionally -v for verbose)
+
 FakeRedis used to enable unit tests to run locally without setting up redis server; faster for dev and 'close enough' to prod setup
 
-A further step would be integration tests, which would ideally run from CI on full stack, using exactly the same environments as staging / production, with such deployment automated with docker or AWS opsworks
+A next step could be integration tests, ideally run from CI on full stack, using exactly the same environments as staging / production, with such deployment automated with docker or AWS opsworks
 
 
 ## Rate limiting algorithm
