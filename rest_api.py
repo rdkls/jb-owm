@@ -5,6 +5,7 @@ import util
 import json
 import re
 import redis
+import fakeredis
 import requests
 import sys
 import time
@@ -18,15 +19,22 @@ from models import User
 
 
 app = Flask(__name__)
-app.debug = True
+if config.DEV_MODE:
+    app.debug = True
 app.config['CORS_HEADERS'] = ['Content-Type', 'X-API-KEY']
 cors = CORS(app)
 
 # Redis connection instance for this worker
-redis_db_ratelimit = redis.Redis(config.REDIS_HOST, config.REDIS_PORT, config.REDIS_DB_RATELIMITS)
+# Global to the API worker
+# Later might do something like a separate service to obtain this, or dependency injection,
+# but for now this is good enough
+if config.DEV_MODE:
+    redis_db_ratelimit = fakeredis.FakeStrictRedis()
+else:
+    redis_db_ratelimit = redis.Redis(config.REDIS_HOST, config.REDIS_PORT, config.REDIS_DB_RATELIMITS)
 
-def check_auth():
-    #api_key = request.headers.get('X-API-KEY')
+
+def check_api_key():
     api_key = request.args.get('api_key')
     if not api_key:
         raise Unauthorized()
@@ -60,13 +68,15 @@ def check_ratelimit(api_key):
 @app.route('/weather', methods=['GET'])
 def get_weather():
     # Auth
-    user = check_auth()
+    try:
+        user = check_api_key()
+    except Unauthorized:
+        raise
 
-    # check throttling
+    # Check throttling
     if not check_ratelimit(user.api_key):
         raise TooManyRequests('Maximum of %s request per hour' % config.LIMIT_REQ_PER_HOUR)
 
-    # Extract and sanitize city & country
     q = request.args.get('q')
     if not q:
         raise BadRequest('q parameter required')
@@ -74,10 +84,14 @@ def get_weather():
     # We're only supporting ?q=cityname[,countryname]
     # So we'll just remove anything that's not (alphanum or comma),
     # complain if more than one comma
-    # and pass the ?q straight through to OWM
+    # and pass the ?q straight through to OWM (Open Weather Map)
     q = re.sub('[^\w,]', '', q)
     if q.count(',') > 1:
         raise BadRequest('q parameter should be of format cityname[,countryname]')
+
+    # Don't talk to OWM if we're running in dev mode
+    if config.DEV_MODE:
+        return 'cloudy with a chance of meatballs'
 
     # Request to OWM
     url = util.construct_owm_req_uri(q)
@@ -92,7 +106,7 @@ def get_weather():
         description = j['weather'][0]['description']
     except:
         # TODO log the invalid req/res from OWM for troubleshooting, raise an alert etc
-        # Error returned to client intentionally vague
+        # Error returned to client is intentionally vague
         raise BadGateway('Problem talking to weather service')
 
     return description
